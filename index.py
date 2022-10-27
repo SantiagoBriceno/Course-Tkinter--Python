@@ -41,7 +41,7 @@ class Product:
         self.tree.heading("#1", text='Price', anchor = CENTER)
         
         ttk.Button(text = 'BORRAR', command=self.delete_product).grid(row = 5, column = 0, sticky = W + E)
-        ttk.Button(text = 'EDITAR').grid(row = 5, column = 1, sticky = W + E)
+        ttk.Button(text = 'EDITAR', command = self.edit_product).grid(row = 5, column = 1, sticky = W + E)
         
         #LLenando las filas de las tablas
         self.get_products()
@@ -94,16 +94,90 @@ class Product:
         self.message['text'] = ''
         try:
             self.tree.item(self.tree.selection())['text'][0]
+            
         except IndexError as e:
             self.message['text'] = 'Por favor seleccione un producto'
             return
         self.message['text'] = ''
 
         nombreProducto = self.tree.item(self.tree.selection())['text']
+
+        try:
+            self.tree.item(self.tree.selection())['values'][0]
+            
+        except IndexError as e:       
+        
+            query = 'DELETE FROM product WHERE name = ?'
+            self.run_query(query, (nombreProducto, ))
+            self.get_products()
+            self.message['text'] = 'El producto {} ha sido eliminado'.format(nombreProducto)
+            return
+
+        
         precioProducto = self.tree.item(self.tree.selection())['values'][0]
-        query = 'DELETE FROM product WHERE name = ? AND  price = ? '
-        self.run_query(query, (nombreProducto, precioProducto))
+        query = 'DELETE FROM product WHERE name = ? AND  price = ?'
+        self.run_query(query, (nombreProducto, precioProducto))        
+        
+        self.get_products()
         self.message['text'] = 'El producto {} ha sido eliminado'.format(nombreProducto)
+        
+        
+
+    def edit_product(self):
+
+        self.message['text'] = ''
+
+        try:
+            self.tree.item(self.tree.selection())['text'][0]
+        except IndexError as e:
+            self.message['text'] = 'Por favor seleccione un producto'
+            return
+        
+        nombreAntiguo = self.tree.item(self.tree.selection())['text']
+        precioAntiguo = self.tree.item(self.tree.selection())['values'][0]
+
+        self.ventEdit = Toplevel()
+        self.ventEdit.title = 'Editar Product'
+        
+        #OLD name
+        Label(self.ventEdit, text  = 'Nombre antiguo: ').grid(row = 0, column = 1)
+
+        Entry(self.ventEdit, textvariable = StringVar(self.ventEdit, value = nombreAntiguo), state = 'readonly').grid(row = 0, column = 2)
+
+        #new name
+        Label(self.ventEdit, text  = 'Nombre nuevo:  ').grid(row = 1, column = 1)
+
+        new_name = Entry(self.ventEdit)
+        new_name.grid(row = 1, column = 2)
+
+        #old price
+        Label(self.ventEdit, text  = 'Precio Antiguo: ').grid(row = 2, column = 1)
+
+        Entry(self.ventEdit, textvariable = StringVar(self.ventEdit, value = precioAntiguo), state = 'readonly').grid(row = 2, column = 2)
+
+        #new price
+        Label(self.ventEdit, text  = 'Precio nuevo:  ').grid(row = 3, column = 1)
+
+        new_price = Entry(self.ventEdit)
+        new_price.grid(row = 3, column = 2)
+
+        nombreNuevo = new_name.get()
+        precioNuevo = new_price.get()
+
+        if nombreNuevo == '':
+            nuevoNombre = nombreAntiguo
+        if precioNuevo == '':
+            precioNuevo = precioAntiguo
+
+        #Boton update
+        Button(self.ventEdit, text = 'Editar', command = lambda: self.edit_records(nombreNuevo, precioNuevo, nombreAntiguo, precioAntiguo)).grid(row = 4, column = 2, sticky = W + E)
+
+    def edit_records(self, new_name, new_price, nombreAntiguo, precioAntiguo):
+        query = 'UPDATE product SET name = ?, price = ? WHERE name = ? AND price = ?'
+        parameters = (new_name, new_price, nombreAntiguo, precioAntiguo)
+        self.run_query(query, parameters)
+        self.ventEdit.destroy()
+        self.message['text'] = 'El producto {} ha sido editado'.format(nombreAntiguo)
         self.get_products()
 
 if __name__ == '__main__':
